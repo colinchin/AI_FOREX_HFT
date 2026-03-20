@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment / secrets
+config/.env
+
+# Generated data & logs
+data/
+logs/
+results/
+.pytest_cache/
+
+# Debug artifacts
+debug-*.png
+
+# OS files
+.DS_Store
+Thumbs.db

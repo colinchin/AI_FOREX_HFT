@@ -1,0 +1,39 @@
+# Risk Management Configuration
+risk:
+  max_risk_per_trade: 0.01        # 1% of equity per trade
+  max_daily_loss: 0.03            # 3% daily loss limit - system halts
+  max_open_positions: 10          # Across all instruments (~1/3 of 28 pairs)
+  max_consecutive_losses: 5       # Triggers cooldown
+  cooldown_seconds: 900           # 15 min cooldown after consecutive losses
+  max_trades_per_day: 150         # Headroom for 28 pairs
+  max_spread_pips: 5.0            # Allow wider G10 crosses; cost handled in sizing
+  max_spread_cost_pct: 0.25       # Reject if spread > 25% of TP distance (spread efficiency)
+  min_equity: 100.0               # Minimum equity to continue trading
+
+  position_sizing:
+    method: atr_based             # fixed_fractional | atr_based
+    min_units: 100
+    max_units: 100000
+    max_position_pct: 0.04        # Max 4% of equity per position (10 pos × 4% = 40% max exposure)
+
+  circuit_breaker:
+    stream_timeout_seconds: 60    # Close all if stream dead > 60s (30s too aggressive for quiet sessions)
+    max_api_errors: 10            # Consecutive API errors before halt
+    equity_drawdown_pct: 0.05     # 5% drawdown from session start = halt
+
+  weekend_close:
+    enabled: true
+    minutes_before_close: 60      # Close all positions 60 min before market close
+    # Forex market closes Friday 5pm New York (ET) — DST-aware via zoneinfo
+
+  volatility_filter:
+    atr_lookback: 50
+    max_atr_std_devs: 2.0         # Reject when ATR > 2 std devs above mean
+
+  news_filter:
+    enabled: true
+    hours_before: 0.25            # Block 15 min before high-impact event
+    hours_after: 0.25             # Block 15 min after high-impact event
+    impact_levels:                # Which ForexFactory impact levels to filter
+      - High
+    cache_seconds: 3600           # Re-fetch calendar at most every hour
