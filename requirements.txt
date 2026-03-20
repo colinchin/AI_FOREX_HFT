@@ -1,7 +1,6 @@
 oandapyV20>=0.7.2
 pandas>=2.0
 numpy>=1.24
-pandas-ta>=0.3.14b
 python-dotenv>=1.0
 pyyaml>=6.0
 structlog>=24.0
