@@ -8,21 +8,15 @@ oanda:
   stream_live_url: "https://stream-fxtrade.oanda.com"
 
 instruments:
-  # 11 qualified G10 pairs — only pairs with optimized pair_params (test PF >= 1.0)
-  # EUR_NZD, GBP_NZD removed — live spreads 6-10 pips (always filtered)
-  # EUR_AUD removed — not optimizer-qualified, consistent live loser (-$3.75)
-  # CHF_JPY removed — not optimizer-qualified, dead weight (17-22 unit positions)
-  - EUR_USD
-  - USD_JPY
-  - GBP_USD
-  - USD_CHF
-  - AUD_USD      # optimizer-qualified (test PF 1.614), was missing from live
-  - NZD_USD
-  - EUR_GBP
-  - EUR_JPY
-  - EUR_CHF
-  - GBP_AUD
-  - NZD_CAD
+  # 90-day OOS paper-trade for the broker-cost experiment (2026-05-23).
+  # Only GBP_NZD enabled, locked to settings.yaml defaults (bb_std=2.0,
+  # rsi 35/65, sl_multiplier=2.5). GBP_NZD's previous pair_params override
+  # was removed so the locked defaults apply.
+  # Revert to the 11-pair production list after the 90-day window closes.
+  # Prior 11-pair list (commented for easy revert):
+  #   EUR_USD, USD_JPY, GBP_USD, USD_CHF, AUD_USD, NZD_USD,
+  #   EUR_GBP, EUR_JPY, EUR_CHF, GBP_AUD, NZD_CAD
+  - GBP_NZD
 
 granularities:
   fast: M1
