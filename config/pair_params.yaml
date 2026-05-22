@@ -102,19 +102,15 @@ GBP_AUD:
   test_pf: 1.227
   train_trades: 60
   test_trades: 35
-# GBP_NZD block removed 2026-05-23 — paper-trade uses settings.yaml defaults
-# (bb_std=2.0, rsi 35/65, sl_multiplier=2.5) as part of the broker-cost
-# experiment's locked-params follow-up. See docs/PAPER_TRADE_GBP_NZD.md.
-# Prior override (restore when reverting to full 11-pair production list):
-#   GBP_NZD:
-#     bb_std: 2.5
-#     rsi_oversold: 25
-#     rsi_overbought: 75
-#     sl_multiplier: 2.5
-#     train_pf: 1.949
-#     test_pf: 2.15
-#     train_trades: 51
-#     test_trades: 19
+GBP_NZD:
+  bb_std: 2.5
+  rsi_oversold: 25
+  rsi_overbought: 75
+  sl_multiplier: 2.5
+  train_pf: 1.949
+  test_pf: 2.15
+  train_trades: 51
+  test_trades: 19
 NZD_CAD:
   bb_std: 2.5
   rsi_oversold: 25
