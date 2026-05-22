@@ -112,15 +112,61 @@ implements this. ~10 min wall clock (vs ~25h for the abandoned grid design).
 - Cost was a real contributor, but **not the binding constraint** for most
   pairs. The signal is the problem.
 
-## Paper-trade follow-up
+## Paper-trade follow-up — CANCELLED after the spread audit
 
-Conditional on the verdict: GBP_NZD earns a 90-day OANDA-Practice paper-trade
-as **out-of-sample data collection** (not a profit test). See
-`docs/PAPER_TRADE_GBP_NZD.md` for the operational steps and decision rule.
-After the window, `scripts/recost_paper_trades.py` re-costs each paper trade
-to ECN equivalents and recomputes PSR(0) on the combined backtest-OOS +
-paper-trade-OOS series. The regime diagnostic is queued **iff** PSR(0)
-decays during the paper-trade.
+Initial intent (committed in 95973e7, reverted in d022b58): 90-day
+OANDA-Practice paper-trade on GBP_NZD as out-of-sample data collection
+against the MARGINAL verdict. See `docs/PAPER_TRADE_GBP_NZD.md` for the
+operational steps that *would* have been used. `scripts/recost_paper_trades.py`
+remains in the repo because the same machinery would re-cost any future
+paper-trade against the ECN model.
+
+## Spread audit — the MARGINAL verdict was a stale-spread artifact
+
+Pre-flight on OCI showed GBP_NZD's live OANDA spread at 7.8 pips vs the
+backtest's assumed 4.0 pips (~2× heavier). Built `scripts/audit_live_spreads.py`
+to poll OANDA pricing 6× over 3 min for all 28 G10 pairs and reported
+realistic = max-of-samples (deliberately pessimistic).
+
+Five pairs were MATERIAL (≥1 pip AND ≥1.5× the table):
+
+| Pair    | Table | Live max | Δ        |
+|---------|------:|---------:|---------:|
+| GBP_NZD | 4.0   | **8.3**  | **+4.30** |
+| EUR_NZD | 3.5   | 6.3      | +2.80    |
+| GBP_AUD | 3.5   | 5.3      | +1.80    |
+| EUR_AUD | 2.0   | 3.5      | +1.50    |
+| EUR_JPY | 1.5   | 2.6      | +1.10    |
+
+Added a `--spread-table-yaml` override to `run_locked_params_experiment.py`
+so corrected spreads can be applied at runtime without mutating the canonical
+`SPREAD_TABLE`. Re-ran both cost models for all 28 pairs against
+`data/spread_audit/corrected_spread_table.yaml` (the audit's pessimistic
+output). Outputs landed in `data/locked_params_oanda_v3/` and
+`data/locked_params_ecn_v3/`.
+
+**Corrected verdict: 0 STRONG, 0 MARGINAL, 28 REJECT.**
+
+GBP_NZD under corrected spreads:
+- PF dropped 1.087 → 0.986 (Δ −0.10)
+- PSR(0) collapsed 0.94 (MARGINAL) → 0.40 (REJECT)
+
+The "MARGINAL" verdict was an optimistic-spread artifact. The signal does
+not survive realistic OANDA costs on any pair. Per the brief's escalation
+path, the binding constraint is the **signal**, not the broker. Next vector
+is the **regime diagnostic** (spec to follow from Colin).
+
+## Run outputs — final
+
+| Directory | Purpose |
+|---|---|
+| `data/locked_params_oanda_v3/` | OANDA-v2 corrected accounting + corrected spreads (final apples-to-apples baseline). |
+| `data/locked_params_ecn_v3/` | ECN spreads + 0.8 bps commission + corrected spread base (final ECN result). |
+| `data/spread_audit/` | Live-spread audit JSON + corrected SPREAD_TABLE YAML. |
+
+`data/locked_params_oanda/` and `data/locked_params_ecn/` (without `_v3`) are
+the pre-audit runs with the stale OANDA spreads — kept for reference but
+*not* the verdict.
 
 ## Operational notes
 
