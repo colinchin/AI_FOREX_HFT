@@ -54,6 +54,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -250,11 +251,29 @@ async def _run_pair(
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 
+def _load_spread_overrides(yaml_path: str | None) -> dict[str, float]:
+    """Load realistic per-pair spreads (pips) from a YAML produced by
+    scripts/audit_live_spreads.py. Returns {} if no path given."""
+    if not yaml_path:
+        return {}
+    with open(yaml_path) as f:
+        doc = yaml.safe_load(f)
+    raw = doc.get("SPREAD_TABLE_CORRECTED") if isinstance(doc, dict) else None
+    if not isinstance(raw, dict):
+        raise ValueError(
+            f"{yaml_path}: expected top-level key 'SPREAD_TABLE_CORRECTED' "
+            "with a dict of pair -> spread_pips"
+        )
+    return {k: float(v) for k, v in raw.items()}
+
+
 async def run_all(
     instruments: list[str], cost_model: str,
     from_date: str, to_date: str | None,
     equity: float, slippage_pips: float, output_dir: str,
+    spread_overrides: dict[str, float] | None = None,
 ) -> None:
+    spread_overrides = spread_overrides or {}
     config = load_config()
     base_strategy_config = config.strategy
     full_config = config.raw
@@ -280,12 +299,22 @@ async def run_all(
         print(f"                ECN raw spreads (max(0.2, OANDA*0.30) pips) + {COMMISSION_BPS_ROUND_TRIP} bps commission")
     else:
         print(f"                OANDA spreads (corrected full round-trip)")
+    if spread_overrides:
+        diffs = [
+            (p, SPREAD_TABLE.get(p, 2.0), spread_overrides[p])
+            for p in instruments if p in spread_overrides
+        ]
+        material = [(p, t, n) for p, t, n in diffs if abs(n - t) >= 1.0]
+        print(f"  Spread overrides: {len(diffs)} pairs from audit YAML "
+              f"({len(material)} material ≥ 1 pip)")
+        for p, t, n in sorted(material, key=lambda x: -abs(x[2] - x[1]))[:10]:
+            print(f"    {p:<10} table={t:>5.1f}  realistic={n:>5.1f}  Δ={n - t:+5.1f}")
     print(f"  Output dir:   {output_dir}")
     print()
 
     start_time = time.monotonic()
     for idx, instrument in enumerate(instruments, 1):
-        oanda_spread = SPREAD_TABLE.get(instrument, 2.0)
+        oanda_spread = spread_overrides.get(instrument, SPREAD_TABLE.get(instrument, 2.0))
         t0 = time.monotonic()
         result = await _run_pair(
             instrument=instrument,
@@ -331,6 +360,13 @@ def main() -> None:
     parser.add_argument("--slippage", type=float, default=0.5)
     parser.add_argument("-o", "--output-dir", default=None)
     parser.add_argument("--pairs", nargs="+", default=None)
+    parser.add_argument(
+        "--spread-table-yaml", default=None,
+        help="YAML with key 'SPREAD_TABLE_CORRECTED: { PAIR: pips, ... }' to "
+             "override OANDA spreads per-pair. Produced by "
+             "scripts/audit_live_spreads.py. If omitted, the built-in "
+             "scripts/backtest_all_pairs.py:SPREAD_TABLE is used as-is.",
+    )
     args = parser.parse_args()
 
     setup_logging(level="WARNING", log_format="console")
@@ -340,6 +376,7 @@ def main() -> None:
         "data/locked_params_ecn" if args.cost_model == "ecn"
         else "data/locked_params_oanda"
     )
+    spread_overrides = _load_spread_overrides(args.spread_table_yaml)
 
     asyncio.run(run_all(
         instruments=instruments,
@@ -349,6 +386,7 @@ def main() -> None:
         equity=args.equity,
         slippage_pips=args.slippage,
         output_dir=output_dir,
+        spread_overrides=spread_overrides,
     ))
 
 
