@@ -163,10 +163,38 @@ is the **regime diagnostic** (spec to follow from Colin).
 | `data/locked_params_oanda_v3/` | OANDA-v2 corrected accounting + corrected spreads (final apples-to-apples baseline). |
 | `data/locked_params_ecn_v3/` | ECN spreads + 0.8 bps commission + corrected spread base (final ECN result). |
 | `data/spread_audit/` | Live-spread audit JSON + corrected SPREAD_TABLE YAML. |
+| `data/autopsy_ecn/` | 24-combo tighter-grid autopsy under ECN + corrected spreads. Per-pair JSONs + `_autopsy_verdict.json`. |
 
 `data/locked_params_oanda/` and `data/locked_params_ecn/` (without `_v3`) are
 the pre-audit runs with the stale OANDA spreads — kept for reference but
 *not* the verdict.
+
+## Tighter-grid autopsy — final closure (2026-05-22)
+
+`scripts/run_tighter_grid_autopsy.py` runs the brief's fallback 24-combo grid
+(`bb_std × rsi_thresholds × sl_multiplier = 3×2×4 = 24`) under ECN + corrected
+spreads, picks the best combo per pair by Sharpe, and reports DSR with N=24.
+
+This is the most permissive test the strategy could fairly receive — small
+grid (weakest selection-bias deflation), best-of-N picked in-sample (most
+favourable read), best cost model (ECN), realistic spreads.
+
+**Result: 0 STRONG, 0 MARGINAL, 28 REJECT.** Best DSR was AUD_NZD at 0.788
+(needs ≥0.85 for MARGINAL). Even with PSR(0) = 0.98 on AUD_JPY (highly
+significant raw Sharpe), selection-bias deflation against N=24 collapses it
+to DSR 0.70.
+
+The full strategy postmortem is at `docs/POSTMORTEM_M5_BB_RSI.md`.
+
+## Final state — strategy shelved
+
+The M5 BB+RSI mean-reversion signal on G10 spot is **dead** at every grid
+width, cost model, and parameter-selection methodology tested across 4.4
+years of data. Live OANDA Practice account is idle (no process running),
+config is back at the 11-pair production list, and the only follow-up
+queued is a separate planning conversation for the regime-diagnostic
+"next project" (Option 3 from the verdict triage). No more measurement
+work on this signal is planned.
 
 ## Operational notes
 
